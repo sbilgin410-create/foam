@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+data/*.db
+data/uploads/*
+data/cases/*
+!data/uploads/.gitkeep
+!data/cases/.gitkeep
+
+tests/_tmp_case/

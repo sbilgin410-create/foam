@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block title %}{{ room.name }}{% endblock %}
+{% block content %}
+<p><a href="/projects/{{ room.project_id }}" class="muted">&larr; {{ room.project.name }}</a></p>
+<h1>{{ room.name }}</h1>
+<p class="muted">
+  {{ room.length_x }}m x {{ room.width_y }}m x {{ room.height_z }}m &nbsp;|&nbsp;
+  Döşeme yüksekliği: {{ room.raised_floor_height }}m &nbsp;|&nbsp;
+  Fayans: {{ room.tile_size }}m &nbsp;|&nbsp;
+  Üfleme: {{ room.supply_air_temp_c }}°C, {{ room.supply_air_flow_m3s }} m³/s
+</p>
+{% if room.notes %}<p class="muted">{{ room.notes }}</p>{% endif %}
+
+{% if summary %}
+<div class="card">
+  <h3>Mühendislik özeti</h3>
+  <p>Toplam IT yükü: <strong>{{ "%.2f"|format(summary.total_it_load_kw) }} kW</strong></p>
+  <p>Soğuk koridor sayısı: {{ summary.cold_aisle_count }} &nbsp;|&nbsp; Sıcak koridor sayısı: {{ summary.hot_aisle_count }} &nbsp;|&nbsp; Kapatılmış (containment) koridor: {{ summary.contained_aisle_count }}</p>
+  <p>Tahmini koridor ΔT: <strong>{{ "%.1f"|format(summary.estimated_delta_t_c) }} °C</strong></p>
+  {% if summary.warnings %}
+  <ul class="warning-list">
+    {% for w in summary.warnings %}<li>⚠ {{ w }}</li>{% endfor %}
+  </ul>
+  {% endif %}
+</div>
+{% endif %}
+
+<h2>Kabinler (Rack)</h2>
+<div class="card">
+  <table>
+    <tr><th>Etiket</th><th>Sıra</th><th>X</th><th>Y</th><th>Genişlik</th><th>Derinlik</th><th>Yükseklik</th><th>Güç (kW)</th><th>Ön yön</th><th></th></tr>
+    {% for c in room.cabinets %}
+    <tr>
+      <td>{{ c.tag }}</td><td>{{ c.row_name }}</td><td>{{ c.x }}</td><td>{{ c.y }}</td>
+      <td>{{ c.width }}</td><td>{{ c.depth }}</td><td>{{ c.height }}</td><td>{{ c.power_kw }}</td><td>{{ c.front_orientation }}</td>
+      <td><form method="post" action="/cabinets/{{ c.id }}/delete"><button class="danger" type="submit">Sil</button></form></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="10" class="muted">Henüz kabin yok.</td></tr>
+    {% endfor %}
+  </table>
+  <h4>Kabin ekle</h4>
+  <form class="inline" method="post" action="/rooms/{{ room.id }}/cabinets">
+    <div class="field"><label>Etiket</label><input name="tag" required placeholder="A-01"></div>
+    <div class="field"><label>Sıra adı</label><input name="row_name" placeholder="Sıra A"></div>
+    <div class="field"><label>X (m)</label><input type="number" step="0.05" name="x" value="0"></div>
+    <div class="field"><label>Y (m)</label><input type="number" step="0.05" name="y" value="0"></div>
+    <div class="field"><label>Genişlik (m)</label><input type="number" step="0.05" name="width" value="0.6"></div>
+    <div class="field"><label>Derinlik (m)</label><input type="number" step="0.05" name="depth" value="1.0"></div>
+    <div class="field"><label>Yükseklik (m)</label><input type="number" step="0.05" name="height" value="2.0"></div>
+    <div class="field"><label>Güç (kW)</label><input type="number" step="0.1" name="power_kw" value="5"></div>
+    <div class="field"><label>Ön yön</label>
+      <select name="front_orientation">
+        <option value="+x">+X</option><option value="-x">-X</option>
+        <option value="+y" selected>+Y</option><option value="-y">-Y</option>
+      </select>
+    </div>
+    <button type="submit">Ekle</button>
+  </form>
+</div>
+
+<h2>Koridorlar (Soğuk / Sıcak)</h2>
+<div class="card">
+  <table>
+    <tr><th>Ad</th><th>Tip</th><th>X</th><th>Y</th><th>Genişlik X</th><th>Genişlik Y</th><th>Kapatma</th><th></th></tr>
+    {% for a in room.aisles %}
+    <tr>
+      <td>{{ a.name }}</td>
+      <td><span class="badge {{ 'cold' if a.aisle_type=='soguk' else 'hot' }}">{{ 'Soğuk' if a.aisle_type=='soguk' else 'Sıcak' }}</span></td>
+      <td>{{ a.x }}</td><td>{{ a.y }}</td><td>{{ a.width_x }}</td><td>{{ a.width_y }}</td><td>{{ a.containment }}</td>
+      <td><form method="post" action="/aisles/{{ a.id }}/delete"><button class="danger" type="submit">Sil</button></form></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="8" class="muted">Henüz koridor yok.</td></tr>
+    {% endfor %}
+  </table>
+  <h4>Koridor ekle</h4>
+  <form class="inline" method="post" action="/rooms/{{ room.id }}/aisles">
+    <div class="field"><label>Ad</label><input name="name" required placeholder="Koridor 1"></div>
+    <div class="field"><label>Tip</label>
+      <select name="aisle_type">
+        <option value="soguk">Soğuk koridor</option>
+        <option value="sicak">Sıcak koridor</option>
+      </select>
+    </div>
+    <div class="field"><label>X (m)</label><input type="number" step="0.05" name="x" value="0"></div>
+    <div class="field"><label>Y (m)</label><input type="number" step="0.05" name="y" value="0"></div>
+    <div class="field"><label>Genişlik X (m)</label><input type="number" step="0.05" name="width_x" value="1.2"></div>
+    <div class="field"><label>Genişlik Y (m)</label><input type="number" step="0.05" name="width_y" value="4.0"></div>
+    <div class="field"><label>Kapatma</label>
+      <select name="containment">
+        <option value="yok">Yok</option>
+        <option value="soguk_kapali">Soğuk koridor kapalı</option>
+        <option value="sicak_kapali">Sıcak koridor kapalı</option>
+      </select>
+    </div>
+    <button type="submit">Ekle</button>
+  </form>
+</div>
+
+<h2>Oda PDF'leri (kat planı / teknik çizim)</h2>
+<div class="card">
+  {% for d in room.documents %}
+  <div class="card" style="background:var(--panel2)">
+    <p><strong>{{ d.original_filename }}</strong> — <span class="muted">{{ d.description }}</span></p>
+    <iframe class="pdf" src="/documents/{{ d.id }}/file"></iframe>
+    <div class="actions">
+      <a class="btn secondary" href="/documents/{{ d.id }}/file" target="_blank">Yeni sekmede aç</a>
+      <form method="post" action="/documents/{{ d.id }}/delete"><button class="danger" type="submit">Sil</button></form>
+    </div>
+  </div>
+  {% else %}
+  <p class="muted">Henüz PDF yüklenmedi.</p>
+  {% endfor %}
+  <h4>PDF yükle</h4>
+  <form class="inline" method="post" action="/rooms/{{ room.id }}/documents" enctype="multipart/form-data">
+    <div class="field"><label>PDF dosyası</label><input type="file" name="file" accept="application/pdf" required></div>
+    <div class="field"><label>Açıklama</label><input name="description" placeholder="Kat planı rev.2"></div>
+    <button type="submit">Yükle</button>
+  </form>
+</div>
+
+<h2>CFD (OpenFOAM) çalışmaları</h2>
+<div class="card">
+  <p class="muted">
+    Kabin, koridor ve oda verilerinden buoyantSimpleFoam (OpenFOAM) case'i üretir.
+    Ubuntu'da OpenFOAM kuruluysa mesh ve çözüm doğrudan bu ekrandan tetiklenebilir.
+  </p>
+  <form method="post" action="/rooms/{{ room.id }}/cfd/generate">
+    <button type="submit">Yeni CFD case üret</button>
+  </form>
+
+  {% for run in runs %}
+  <div class="card" style="background:var(--panel2)">
+    <p>
+      <strong>{{ run.case_dir.split('/')[-1] }}</strong>
+      <span class="badge {{ 'ok' if run.status in ['mesh_calisti','cozdu'] else ('err' if run.status=='hata' else 'warn') }}">{{ run.status }}</span>
+      &nbsp;<span class="muted">{{ run.block_count }} blok</span>
+    </p>
+    <div class="actions">
+      <form method="post" action="/cfd/{{ run.id }}/mesh"><button type="submit">Mesh oluştur (blockMesh + checkMesh)</button></form>
+      <form method="post" action="/cfd/{{ run.id }}/solve"><button type="submit">Çöz (buoyantSimpleFoam)</button></form>
+      <form method="post" action="/cfd/{{ run.id }}/delete"><button class="danger" type="submit">Sil</button></form>
+    </div>
+    {% if run.log_tail %}<pre class="log">{{ run.log_tail }}</pre>{% endif %}
+    <p class="muted">Case dizini: {{ run.case_dir }}</p>
+  </div>
+  {% else %}
+  <p class="muted">Henüz CFD case üretilmedi.</p>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Projeler{% endblock %}
+{% block content %}
+<h1>Projeler</h1>
+<p class="muted">Her proje bir veri merkezi sahasını temsil eder; içinde birden fazla oda (salon) tanımlayabilirsiniz.</p>
+
+<div class="card">
+  <h3>Yeni proje</h3>
+  <form class="inline" method="post" action="/projects">
+    <div class="field"><label>Proje adı</label><input name="name" required></div>
+    <div class="field"><label>Açıklama</label><input name="description" style="width:300px"></div>
+    <button type="submit">Oluştur</button>
+  </form>
+</div>
+
+<div class="grid">
+  {% for p in projects %}
+  <a class="card" href="/projects/{{ p.id }}" style="text-decoration:none;color:inherit">
+    <h3>{{ p.name }}</h3>
+    <p class="muted">{{ p.description }}</p>
+    <p class="muted">{{ p.rooms|length }} oda</p>
+  </a>
+  {% else %}
+  <p class="muted">Henüz proje yok.</p>
+  {% endfor %}
+</div>
+{% endblock %}
